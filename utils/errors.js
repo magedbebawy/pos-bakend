@@ -12,7 +12,7 @@ class Errors {
         return {
             message: 'Internal server error',
             statusCode: 500,
-            error
+            error: error.message || error
         }
     }
 
