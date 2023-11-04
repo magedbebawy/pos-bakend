@@ -1,5 +1,9 @@
 const Validate = require('../utils/validate');
 const Errors = require('../utils/errors');
+const pool = require('../db/db');
+const {insertNewAdmin, getAdminPassword} = require('../db/queries');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 // create a Validate instance
 const validate = new Validate();
@@ -13,13 +17,20 @@ const adminSignUp = async (req, res) => {
     try {
         // validate data
         const errors = [];
-        console.log(req.body);
-        if(!req.body) return res.send(errorsMessage.validationError("Request body is empty"));
+        if(!req.body) return res.send(errorsMessage.validationError(["Invalid request"]));
         const data = req.body;
-        console.log(data);
-        // add admin to db
+        const validateInput = validateSignUp(data);
+        if(validateInput && validateInput.length > 0) {
+            return res.send(errorsMessage.validationError(validateInput));
+        }
 
+        // hash password
+        const password = await bcrypt.hash(data.password, 10);
+    
+        // add admin to db
+        await pool.query(insertNewAdmin, [data.name, data.userid, password, data.email]);
         return res.send(errorsMessage.success('Admin created successfully'));
+        
     } catch (error) {
         console.log('error:', error);
         return res.send(errorsMessage.serverError(error));
@@ -30,9 +41,28 @@ const adminSignUp = async (req, res) => {
 const adminSignIn = async (req, res) => {
 
     try {
-        
+        // validate data
+        if(!req.body) return res.send(errorsMessage.validationError(['Invalid request']));
+        const data = req.body;
+        const validateInput = validateSignIn(data);
+        if(validateInput && validateInput.length > 0) {
+            return res.send(errorsMessage.validationError(validateInput));
+        };
+
+        // get password from db
+        const dbRes = await pool.query(getAdminPassword, [data.userid]);
+        const dbPassword = dbRes.rows[0].password;
+
+        // compare passwords
+        const compareRes = await bcrypt.compare(data.password, dbPassword);
+        if(!compareRes) return res.send(errorsMessage.validationError(['Invalid password']));
+
+        // generate jwt
+
+        return res.send(errorsMessage.success('Admin signed in successfully'));
     } catch (error) {
         console.log('error:', error);
+        return res.send(errorsMessage.serverError(error));
     }
 };
 
@@ -55,6 +85,32 @@ const userSignIn = async (req, res) => {
         console.log('error:', error);
     }
 };
+
+const validateSignUp = (data) => {
+    const errors = [];
+    if(!data.name || data.name.length < 4) errors.push('A valid name is required');
+    if(!data.email || !validate.isEmail(data.email)) errors.push('A valid email is required');
+    if(!data.userid || data.userid < 5) errors.push('A valid user ID is required');
+    if(!data.password || data.password.length < 10) errors.push('A valid password is required');
+    if(errors.length > 0) {
+        return errors;
+    } else {
+        return null;
+    
+    }
+}
+
+const validateSignIn = (data) => {
+    const errors = [];
+    if(!data.userid || data.userid < 5) errors.push('A valid user ID is required');
+    if(!data.password || data.password.length < 10) errors.push('A valid password is required');
+    if(errors.length > 0) {
+        return errors;
+    } else {
+        return null;
+    
+    }
+}
 
 module.exports = {
     adminSignUp,
