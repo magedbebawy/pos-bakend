@@ -23,6 +23,14 @@ class Errors {
             error
         }
     }
+
+    authorizationError(error) {
+        return {
+            message: 'Not authorized',
+            statusCode: 401,
+            error: error.message || error
+        }
+    }
 }
 
 module.exports = Errors;

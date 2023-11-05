@@ -1,7 +1,7 @@
 const Validate = require('../utils/validate');
 const Errors = require('../utils/errors');
 const pool = require('../db/db');
-const {insertNewAdmin, getAdminPassword} = require('../db/queries');
+const {insertNewAdmin, getAdminInfoByUserId} = require('../db/queries');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
@@ -50,16 +50,27 @@ const adminSignIn = async (req, res) => {
         };
 
         // get password from db
-        const dbRes = await pool.query(getAdminPassword, [data.userid]);
+        const dbRes = await pool.query(getAdminInfoByUserId, [data.userid]);
         const dbPassword = dbRes.rows[0].password;
 
         // compare passwords
         const compareRes = await bcrypt.compare(data.password, dbPassword);
-        if(!compareRes) return res.send(errorsMessage.validationError(['Invalid password']));
+        if(!compareRes) return res.send(errorsMessage.authorizationError(['Invalid password']));
 
         // generate jwt
+        const payload = {
+            id: data.userid,
+            name: dbRes.rows[0].fullname,
+            role: 'Admin'
+        };
 
-        return res.send(errorsMessage.success('Admin signed in successfully'));
+        const options = {
+            expiresIn: '1m'
+        }
+
+        const token = jwt.sign(payload, process.env.SECRETKEY, options);
+
+        return res.send(errorsMessage.success('Admin signed in successfully', {token}));
     } catch (error) {
         console.log('error:', error);
         return res.send(errorsMessage.serverError(error));
@@ -86,6 +97,34 @@ const userSignIn = async (req, res) => {
     }
 };
 
+// verify token and generate a new one
+const verify = async (req, res) => {
+    try {
+        if(!req.body || !req.body.token)return res.send(errorsMessage.validationError(['Missing token']));
+        jwt.verify(req.body.token, process.env.SECRETKEY, (err, decoded) => {
+            if(err) {
+                return res.send(errorsMessage.authorizationError(err));
+            }
+
+            const payload = {
+                id: decoded.id,
+                name: decoded.name,
+                role: 'Admin'
+            };
+    
+            const options = {
+                expiresIn: '32d'
+            }
+
+            const token = jwt.sign(payload, process.env.SECRETKEY, options);
+            return res.send(errorsMessage.success('Token verified successfully', {token}));
+        })
+    } catch (error) {
+        console.log('error:', error);
+        return res.send(errorsMessage.serverError('Error verifing token'));
+    }
+};
+
 const validateSignUp = (data) => {
     const errors = [];
     if(!data.name || data.name.length < 4) errors.push('A valid name is required');
@@ -96,7 +135,6 @@ const validateSignUp = (data) => {
         return errors;
     } else {
         return null;
-    
     }
 }
 
@@ -108,7 +146,6 @@ const validateSignIn = (data) => {
         return errors;
     } else {
         return null;
-    
     }
 }
 
@@ -116,5 +153,6 @@ module.exports = {
     adminSignUp,
     adminSignIn,
     userSignup,
-    userSignIn
+    userSignIn,
+    verify
 }
