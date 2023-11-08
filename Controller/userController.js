@@ -21,7 +21,8 @@ const adminSignUp = async (req, res) => {
         const data = req.body;
         const validateInput = validateSignUp(data);
         if(validateInput && validateInput.length > 0) {
-            return res.send(errorsMessage.validationError(validateInput));
+            const error = errorsMessage.validationError(validateInput);
+            return res.status(error.status).send(error);
         }
 
         // hash password
@@ -33,7 +34,8 @@ const adminSignUp = async (req, res) => {
         
     } catch (error) {
         console.log('error:', error);
-        return res.send(errorsMessage.serverError(error));
+        const err = errorsMessage.serverError(error);
+        return res.status(err.status).send(err);
     }
 };
 
@@ -46,7 +48,8 @@ const adminSignIn = async (req, res) => {
         const data = req.body;
         const validateInput = validateSignIn(data);
         if(validateInput && validateInput.length > 0) {
-            return res.send(errorsMessage.validationError(validateInput));
+            const error = errorsMessage.validationError(validateInput);
+            return res.status(error.status).send(error);
         };
 
         // get password from db
@@ -55,7 +58,8 @@ const adminSignIn = async (req, res) => {
 
         // compare passwords
         const compareRes = await bcrypt.compare(data.password, dbPassword);
-        if(!compareRes) return res.send(errorsMessage.authorizationError(['Invalid password']));
+        const authErr = errorsMessage.authorizationError(['Invalid password']);
+        if(!compareRes) return res.status(authErr.status).send(authErr);
 
         // generate jwt
         const payload = {
@@ -73,7 +77,8 @@ const adminSignIn = async (req, res) => {
         return res.send(errorsMessage.success('Admin signed in successfully', {token}));
     } catch (error) {
         console.log('error:', error);
-        return res.send(errorsMessage.serverError(error));
+        const err = errorsMessage.serverError(error);
+        return res.status(err.status).send(err);
     }
 };
 
@@ -103,7 +108,8 @@ const verify = async (req, res) => {
         if(!req.body || !req.body.token)return res.send(errorsMessage.validationError(['Missing token']));
         jwt.verify(req.body.token, process.env.SECRETKEY, (err, decoded) => {
             if(err) {
-                return res.send(errorsMessage.authorizationError(err));
+                const authErr = errorsMessage.authorizationError()
+                return res.send(authErr);
             }
 
             const payload = {
@@ -121,7 +127,8 @@ const verify = async (req, res) => {
         })
     } catch (error) {
         console.log('error:', error);
-        return res.send(errorsMessage.serverError('Error verifing token'));
+        const err = errorsMessage.serverError(error);
+        return res.status(err.status).send(err);
     }
 };
 

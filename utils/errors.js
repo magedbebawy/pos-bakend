@@ -2,7 +2,7 @@ class Errors {
     success(message, data) {
         return {
             message,
-            statusCode: 200,
+            status: 200,
             error: null,
             data
         }
@@ -11,7 +11,7 @@ class Errors {
     serverError(error) {
         return {
             message: 'Internal server error',
-            statusCode: 500,
+            status: 500,
             error: error.message || error
         }
     }
@@ -19,7 +19,7 @@ class Errors {
     validationError(error) {
         return {
             message: 'Validation error',
-            statusCode: 400,
+            status: 400,
             error
         }
     }
@@ -27,7 +27,7 @@ class Errors {
     authorizationError(error) {
         return {
             message: 'Not authorized',
-            statusCode: 401,
+            status: 401,
             error: error.message || error
         }
     }
