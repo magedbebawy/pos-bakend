@@ -108,8 +108,8 @@ const verify = async (req, res) => {
         if(!req.body || !req.body.token)return res.send(errorsMessage.validationError(['Missing token']));
         jwt.verify(req.body.token, process.env.SECRETKEY, (err, decoded) => {
             if(err) {
-                const authErr = errorsMessage.authorizationError()
-                return res.send(authErr);
+                const authErr = errorsMessage.authorizationError(err);
+                return res.status(authErr.status).send(authErr);
             }
 
             const payload = {
