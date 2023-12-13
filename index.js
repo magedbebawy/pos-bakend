@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const printRoute = require('./Routes/printRoutes');
 const userRoutes = require('./Routes/userRoutes');
+const storeRoutes = require('./Routes/storeRoutes');
 const pool = require('./db/db');
 const cors = require('cors');
 
@@ -12,6 +13,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/', printRoute);
 app.use('/user', userRoutes);
+app.use('/store', storeRoutes);
 
 process.on('SIGTERM', () => {
     console.log('SIGTERM signal received: closing PG pool');
