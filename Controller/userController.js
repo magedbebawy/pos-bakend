@@ -63,13 +63,13 @@ const adminSignIn = async (req, res) => {
 
         // generate jwt
         const payload = {
-            id: data.userid,
+            id: dbRes.rows[0].admin_id,
             name: dbRes.rows[0].fullname,
             role: 'Admin'
         };
 
         const options = {
-            expiresIn: '1m'
+            expiresIn: '31d'
         }
 
         const token = jwt.sign(payload, process.env.SECRETKEY, options);
@@ -132,6 +132,24 @@ const verify = async (req, res) => {
     }
 };
 
+const authenticateToken = (req, res, next) => {
+    const token = req.header('Authorization');
+  
+    if (!token) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+  
+    jwt.verify(token, process.env.SECRETKEY, (err, user) => {
+      if (err) {
+        console.log(err);
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      req.user = user;
+      next();
+    });
+};
+
+
 const validateSignUp = (data) => {
     const errors = [];
     if(!data.name || data.name.length < 4) errors.push('A valid name is required');
@@ -161,5 +179,6 @@ module.exports = {
     adminSignIn,
     userSignup,
     userSignIn,
-    verify
+    verify,
+    authenticateToken
 }
