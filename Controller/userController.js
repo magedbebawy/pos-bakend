@@ -105,7 +105,8 @@ const userSignIn = async (req, res) => {
 // verify token and generate a new one
 const verify = async (req, res) => {
     try {
-        if(!req.body || !req.body.token)return res.send(errorsMessage.validationError(['Missing token']));
+        const err = errorsMessage.serverError('Not authorized');
+        if(!req.body || !req.body.token)return res.status(err.status).send(err);
         jwt.verify(req.body.token, process.env.SECRETKEY, (err, decoded) => {
             if(err) {
                 const authErr = errorsMessage.authorizationError(err);
