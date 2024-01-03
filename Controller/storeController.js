@@ -31,6 +31,11 @@ const updateStore = async () => {
 
 }
 
+// API to get stores
+const getAllStores = async () => {
+    
+}
+
 module.exports = {
     createStore,
     deleteStore,
